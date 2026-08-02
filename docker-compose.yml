@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ritou-db
+    environment:
+      POSTGRES_USER: ritou
+      POSTGRES_PASSWORD: ritou
+      POSTGRES_DB: ritou
+    ports:
+      - "5436:5432"
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d
+      - ritou-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ritou -d ritou"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  ritou-pgdata:

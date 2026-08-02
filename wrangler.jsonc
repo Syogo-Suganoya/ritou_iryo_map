@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+  "name": "ritou-iryo-map",
+  "compatibility_date": "2026-07-31",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      // 自己参照サービスバインディング。名前はworker名（上の"name"）と一致させる
+      // see https://opennext.js.org/cloudflare/caching
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "ritou-iryo-map"
+    }
+  ],
+  "hyperdrive": [
+    {
+      // Neon(Postgres)へのTCP接続をHyperdrive経由でプールする
+      // idはHyperdrive設定を作成すると発行される（DEPLOY.md 手順3参照）
+      "binding": "HYPERDRIVE",
+      "id": "05ae7b4db0f64b3b9a3ef62a1c1cda6e",
+      "localConnectionString": "postgres://ritou:ritou@localhost:5436/ritou"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

@@ -1,0 +1,148 @@
+@import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+/*
+ * 「海図レポート」トークン
+ * 紺のチャート紙(ink)に、記録用の羊皮紙(parchment)カードを貼り付けた見た目。
+ * 深刻度(gap_score)は海図の危険水域表示になぞらえ、朱(critical)〜緑(low)で表現する。
+ */
+:root {
+  --ink: #0e1f30;
+  --ink-2: #16324a;
+  --ink-3: #1e405a;
+  --ink-line: rgba(241, 233, 218, 0.16);
+  --ink-line-strong: rgba(241, 233, 218, 0.32);
+
+  --parchment: #f4ead9;
+  --parchment-deep: #e9dac0;
+  --parchment-line: rgba(28, 43, 58, 0.16);
+
+  --text-ink: #1c2b3a;
+  --text-ink-muted: #64707c;
+  --text-parchment: #f1e9da;
+  --text-parchment-muted: #aea180;
+
+  --danger: #c1432b;
+  --high: #c97a3d;
+  --moderate: #b0842c;
+  --safe: #2f7a68;
+  --safe-bright: #4fa88c;
+
+  --accent: #2f7a68;
+  --accent-bright: #4fa88c;
+
+  --font-display: var(--font-shippori), serif;
+  --font-body: var(--font-zen), "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  --font-mono: var(--font-mono-data), ui-monospace, monospace;
+}
+
+body {
+  background: var(--ink);
+  color: var(--text-parchment);
+  font-family: var(--font-body);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+.font-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 紺地に置く羊皮紙カード：角丸なし・細罫線＝海図の記入欄 */
+.panel {
+  background: var(--parchment);
+  color: var(--text-ink);
+  border: 1px solid var(--parchment-line);
+}
+
+.panel-hover:hover {
+  border-color: var(--accent);
+  background: var(--parchment-deep);
+}
+
+/* 紺地カード（紺の上にさらに沈める区画） */
+.panel-ink {
+  background: var(--ink-2);
+  color: var(--text-parchment);
+  border: 1px solid var(--ink-line);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.btn-solid {
+  background: var(--accent-bright);
+  color: var(--ink);
+  border-color: var(--accent-bright);
+}
+.btn-solid:hover {
+  background: #6fc0a5;
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--text-parchment);
+  border-color: var(--ink-line-strong);
+}
+.btn-outline:hover {
+  border-color: var(--accent-bright);
+  color: var(--accent-bright);
+}
+
+.btn-outline-ink {
+  background: transparent;
+  color: var(--text-ink);
+  border-color: var(--parchment-line);
+}
+.btn-outline-ink:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ギャップレベルの表示チップ（海図の危険度表示） */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: 1px solid;
+  font-family: var(--font-mono);
+}
+.chip-critical { color: #fff; background: var(--danger); border-color: var(--danger); }
+.chip-high { color: #fff; background: var(--high); border-color: var(--high); }
+.chip-moderate { color: var(--text-ink); background: var(--moderate); border-color: var(--moderate); }
+.chip-low { color: #fff; background: var(--safe); border-color: var(--safe); }
+
+.hairline-t { border-top: 1px solid var(--parchment-line); }
+.hairline-b { border-bottom: 1px solid var(--parchment-line); }
+
+/* チャート紙の罫線パターン（緯経線を模した薄いグリッド） */
+.chart-grid {
+  background-image:
+    linear-gradient(var(--ink-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ink-line) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
