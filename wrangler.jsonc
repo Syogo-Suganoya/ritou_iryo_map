@@ -2,6 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "main": ".open-next/worker.js",
   "name": "ritou-iryo-map",
+  // デプロイ先アカウント。CI（GitHub Actions）ではCLOUDFLARE_ACCOUNT_IDを渡さないため、ここで固定する
+  "account_id": "a128e75b7210f99f780cccff2c2cf5ab",
   "compatibility_date": "2026-07-31",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {

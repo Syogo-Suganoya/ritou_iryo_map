@@ -18,7 +18,7 @@
 
 このリポジトリには既に以下が設定済み：
 - `@opennextjs/cloudflare` / `wrangler`（devDependencies）、`pg-cloudflare`（dependencies）
-- [`wrangler.jsonc`](wrangler.jsonc)（Workerの設定。`hyperdrive` バインディングのプレースホルダ入り）
+- [`wrangler.jsonc`](wrangler.jsonc)（Workerの設定。`account_id` 設定済み、`hyperdrive` バインディングはプレースホルダ入り）
 - [`open-next.config.ts`](open-next.config.ts)（Cloudflareアダプタの設定）
 - [`next.config.ts`](next.config.ts)（`serverExternalPackages` と `initOpenNextCloudflareForDev`）
 - [`lib/db.ts`](lib/db.ts)（Workers上では`env.HYPERDRIVE`、ローカルでは`DATABASE_URL`を自動で使い分ける`getDb()`）
@@ -145,12 +145,6 @@ npm run cf:deploy
 | 種別 | 名前 | 値 |
 | :--- | :--- | :--- |
 | Secret | `CLOUDFLARE_API_TOKEN` | 6-1で発行したトークン |
-| Secret | `HYPERDRIVE_ID` | 手順3で発行された Hyperdrive の `id` |
-| Variable（任意） | `CLOUDFLARE_ACCOUNT_ID` | `a128e75b7210f99f780cccff2c2cf5ab`（未設定ならワークフロー内の既定値を使う） |
-
-> `wrangler.jsonc` の `hyperdrive[0].id` はリポジトリ上ではプレースホルダ `<HYPERDRIVE_ID>` のままにしてある。
-> ワークフローがデプロイ直前に `secrets.HYPERDRIVE_ID` で置換する。
-> 実IDを直接コミットしている場合は置換されず、そのまま使われる。
 
 `deploy` ジョブは `environment: production` を指定しているので、GitHubの
 **Settings → Environments** で `production` を作り、Required reviewers を付ければ
@@ -171,7 +165,6 @@ npm run cf:deploy
 | トップの収録件数が出ない／APIが500 | Hyperdriveの`id`が`wrangler.jsonc`に正しく設定されているか確認。Neonの接続文字列がプールなし（直接接続）になっているか確認 |
 | ローカルの`wrangler dev`だけDB接続できない | `docker compose up -d` でPostgreSQLが起動しているか確認。`wrangler.jsonc`の`localConnectionString`のポート（**5436**）が`docker-compose.yml`と一致しているか確認 |
 | Actionsのdeployが `Authentication error [code: 10000]` | `CLOUDFLARE_API_TOKEN` が未設定、または権限不足。手順6-1の3つの権限（Workers Scripts: Edit / Hyperdrive: Read / Account Settings: Read）と、Account Resources に対象アカウントが含まれているかを確認する |
-| Actionsが `wrangler.jsonc がプレースホルダのままですが…` で失敗 | Secret `HYPERDRIVE_ID` が未登録。手順6-2で登録する |
 | 地図タイルが出ない | 国土地理院タイル（`cyberjapandata.gsi.go.jp`）と島名グリフ（`glyphs.geolonia.com`）への外部通信。`compatibility_flags` に `global_fetch_strictly_public` が入っているか確認 |
 
 ## デプロイ後のデータ更新
