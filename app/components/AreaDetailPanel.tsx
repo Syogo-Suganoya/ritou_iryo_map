@@ -20,6 +20,15 @@ export default function AreaDetailPanel({
 
   return (
     <div className="panel p-5 space-y-4">
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="text-sm font-bold hairline-b w-full text-left pb-2"
+          style={{ color: "var(--accent)" }}
+        >
+          ← ランキング一覧に戻る
+        </button>
+      )}
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="eyebrow" style={{ color: "var(--text-ink-muted)" }}>
@@ -30,19 +39,7 @@ export default function AreaDetailPanel({
             {area.municipality}（{area.subprefecture}）
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className={`chip ${lv.badge}`}>{lv.label}</span>
-          {onClose && (
-            <button
-              onClick={onClose}
-              aria-label="閉じる"
-              className="w-6 h-6 flex items-center justify-center text-sm"
-              style={{ color: "var(--text-ink-muted)" }}
-            >
-              ×
-            </button>
-          )}
-        </div>
+        <span className={`chip shrink-0 ${lv.badge}`}>{lv.label}</span>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">

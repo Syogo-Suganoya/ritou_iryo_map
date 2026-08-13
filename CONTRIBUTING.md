@@ -19,7 +19,7 @@
 | `app/` | 画面とAPIルート（`/` が地図・ランキング・比較チャートを含む単一ワークブック、`/island/[slug]` は詳細の共有用フルページ） |
 | `app/components/Workbench.tsx` | `/` のクライアント本体。タブ切替（地図/人口対比/優先エリア）・地図・詳細パネルをまとめて持つ |
 | `app/components/AreaDetailPanel.tsx` | 地図タブでエリアを選択したときにその場で開く詳細パネル（`/island/[slug]` と共通のFacilityTableを使用） |
-| `lib/` | DB接続（`db.ts` の `getDb()`。ローカルは`DATABASE_URL`、Cloudflare Workers上はHyperdriveを自動判別）・ギャップレベル定義と理由文生成（`gap.ts`）・距離計算（`geo.ts`） |
+| `lib/` | DB接続（`db.ts` の `getDb()`。ローカルは`DATABASE_URL`のPool、Cloudflare Workers上はHyperdriveへクエリごとに`Client`を張る。**接続をリクエストを跨いで使い回すとWorkersが例外を出すため、Poolに戻さないこと**）・ギャップレベル定義と理由文生成（`gap.ts`）・距離計算（`geo.ts`） |
 | `wrangler.jsonc` / `open-next.config.ts` | Cloudflare Workers へのデプロイ設定（[DEPLOY.md](DEPLOY.md) 参照） |
 | `db/init/` | スキーマ+ビュー（手書き）とシード（`ingest` で自動生成） |
 | `scripts/ingest.mjs` | オープンデータ取り込みスクリプト（島マスタの静的定義もここ） |

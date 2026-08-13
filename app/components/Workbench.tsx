@@ -69,9 +69,12 @@ export default function Workbench() {
   const [view, setView] = useState("izu");
   const [tab, setTab] = useState<Tab>("map");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  // 一覧に戻ったとき、どれを見ていたかを示し続けるために直前の選択を覚えておく
+  const [lastSlug, setLastSlug] = useState<string | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
+  const sideRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     fetch("/api/islands")
@@ -99,6 +102,13 @@ export default function Workbench() {
     () => ranked.find((a) => a.slug === selectedSlug) ?? null,
     [ranked, selectedSlug]
   );
+
+  // 選択の入口は一覧・地図バブル・優先エリア表の3か所。lastSlug は一覧へ戻ったときの
+  // ハイライトと復帰位置に使うので、選択時に必ず一緒に更新する
+  function selectArea(slug: string) {
+    setSelectedSlug(slug);
+    setLastSlug(slug);
+  }
 
   function selectTab(t: Tab) {
     setTab(t);
@@ -175,8 +185,9 @@ export default function Workbench() {
         if (!f) return;
         const p = f.properties as Record<string, string>;
         popupRef.current?.remove();
-        // setState は安定した参照なので、初回のみ実行されるこの効果内から直接呼んでよい
-        setSelectedSlug(p.slug);
+        // selectArea は setState を呼ぶだけで参照が安定しているため、
+        // 初回のみ実行されるこの効果内から直接呼んでよい
+        selectArea(p.slug);
         setTab("map");
       });
       map.on("click", "facilities-pin", (e) => {
@@ -265,6 +276,25 @@ export default function Workbench() {
     map.flyTo({ center: [selectedArea.lng, selectedArea.lat], zoom: Math.max(map.getZoom(), 9), duration: 600 });
   }, [selectedArea, mapReady]);
 
+  // 詳細に切り替わったとき、それが視界に入るようにする
+  // （lg以上は右カラム自身がスクロール領域、lg未満は地図の下に積まれるためページごと送る）
+  useEffect(() => {
+    const el = sideRef.current;
+    if (!el) return;
+    if (selectedSlug) {
+      if (window.matchMedia("(min-width: 1024px)").matches) {
+        el.scrollTop = 0;
+      } else {
+        // smooth は環境（reduced motion 等）によっては無視されスクロールごと起きないため、
+        // 確実に詳細まで送れる即時スクロールにする
+        el.scrollIntoView({ block: "start" });
+      }
+    } else if (lastSlug) {
+      // 一覧へ戻ったら、見ていた項目まで送り返す（先頭に飛ばされると位置を見失うため）
+      el.querySelector(`[data-slug="${lastSlug}"]`)?.scrollIntoView({ block: "nearest" });
+    }
+  }, [selectedSlug, lastSlug]);
+
   // タブが地図に戻った時にキャンバスサイズを再計測
   useEffect(() => {
     if (tab === "map") {
@@ -345,15 +375,26 @@ export default function Workbench() {
             className="lg:col-span-3 h-[420px] lg:h-[600px] overflow-hidden border"
             style={{ borderColor: "var(--ink-line)" }}
           />
-          <div className="lg:col-span-2 lg:h-[600px] lg:overflow-y-auto lg:pr-1 space-y-3">
+          {/* 一覧と詳細は排他表示。詳細を一覧の下に積むと、選んでも画面外に出てしまうため */}
+          <div
+            ref={sideRef}
+            className="lg:col-span-2 lg:h-[600px] lg:overflow-y-auto lg:pr-1 space-y-3"
+          >
+          {selectedArea ? (
+            <AreaDetailPanel
+              area={selectedArea}
+              facilities={facilities.filter((f) => f.area_slug === selectedArea.slug)}
+              onClose={() => setSelectedSlug(null)}
+            />
+          ) : (
           <ul className="space-y-2">
             {ranked.map((a) => {
               const lv = LEVELS[gapLevel(Number(a.gap_score))];
-              const active = a.slug === selectedSlug;
+              const active = a.slug === (selectedSlug ?? lastSlug);
               return (
-                <li key={a.slug}>
+                <li key={a.slug} data-slug={a.slug}>
                   <button
-                    onClick={() => setSelectedSlug(active ? null : a.slug)}
+                    onClick={() => selectArea(a.slug)}
                     className="panel panel-hover block w-full text-left p-3"
                     style={active ? { borderColor: "var(--accent)", background: "var(--parchment-deep)" } : undefined}
                   >
@@ -373,12 +414,6 @@ export default function Workbench() {
               );
             })}
           </ul>
-          {selectedArea && (
-            <AreaDetailPanel
-              area={selectedArea}
-              facilities={facilities.filter((f) => f.area_slug === selectedArea.slug)}
-              onClose={() => setSelectedSlug(null)}
-            />
           )}
           </div>
         </div>
@@ -466,7 +501,7 @@ export default function Workbench() {
                         <td className="py-2 pr-3">
                           <button
                             onClick={() => {
-                              setSelectedSlug(a.slug);
+                              selectArea(a.slug);
                               selectTab("map");
                             }}
                             className="font-bold underline text-left"
@@ -502,14 +537,14 @@ export default function Workbench() {
               </table>
             </div>
             <p className="text-xs mt-3" style={{ color: "var(--text-ink-muted)" }}>
-              エリア名をクリックすると地図タブでそのエリアの詳細が開きます
+              エリア名をクリックすると地図タブに切り替わり、そのエリアの詳細が開きます
             </p>
           </section>
         </div>
       )}
 
       <p className="text-xs text-center" style={{ color: "var(--text-parchment-muted)" }}>
-        エリア名やマップ上の島をクリックすると、この場で医療機関一覧・移動手段・距離定規が開きます
+        ランキングやマップ上の島をクリックすると、右側が医療機関一覧・移動手段・距離定規に切り替わります
       </p>
     </div>
   );

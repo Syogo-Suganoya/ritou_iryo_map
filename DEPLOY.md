@@ -163,6 +163,7 @@ npm run cf:deploy
 | :--- | :--- |
 | `cf:preview` / `cf:deploy` で `Could not resolve "pg-cloudflare"` | `pg-cloudflare` が依存関係に入っているか確認。`next.config.ts` の `serverExternalPackages: ["pg", "pg-cloudflare"]` が外れていないか確認 |
 | トップの収録件数が出ない／APIが500 | Hyperdriveの`id`が`wrangler.jsonc`に正しく設定されているか確認。Neonの接続文字列がプールなし（直接接続）になっているか確認 |
+| 本番が数回に1回 `Error 1101 Worker threw exception` になる | DB接続をリクエストを跨いで使い回すと、Workersが `Cannot perform I/O on behalf of a different request` で例外を出す（ログ上は「code had hung」として現れることもある）。[`lib/db.ts`](lib/db.ts) がクエリごとに `Client` を張って `ctx.waitUntil` で閉じる実装になっているか確認する。`Pool` をモジュールスコープに保持する実装に戻すと再発する |
 | ローカルの`wrangler dev`だけDB接続できない | `docker compose up -d` でPostgreSQLが起動しているか確認。`wrangler.jsonc`の`localConnectionString`のポート（**5436**）が`docker-compose.yml`と一致しているか確認 |
 | Actionsのdeployが `Authentication error [code: 10000]` | `CLOUDFLARE_API_TOKEN` が未設定、または権限不足。手順6-1の3つの権限（Workers Scripts: Edit / Hyperdrive: Read / Account Settings: Read）と、Account Resources に対象アカウントが含まれているかを確認する |
 | 地図タイルが出ない | 国土地理院タイル（`cyberjapandata.gsi.go.jp`）と島名グリフ（`glyphs.geolonia.com`）への外部通信。`compatibility_flags` に `global_fetch_strictly_public` が入っているか確認 |
