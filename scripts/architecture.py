@@ -16,7 +16,7 @@ from diagrams.onprem.container import Docker
 from diagrams.onprem.database import PostgreSQL
 from diagrams.onprem.network import Internet
 from diagrams.onprem.vcs import Github
-from diagrams.programming.framework import NextJs, React
+from diagrams.programming.framework import NextJs
 from diagrams.programming.language import Nodejs
 from diagrams.saas.cdn import Cloudflare
 
@@ -36,7 +36,7 @@ OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 
 def runtime_architecture() -> None:
-    """本番実行時の構成。外部通信は地図タイルとグリフだけであることを示す。"""
+    """本番実行時の構成。技術スタックが分かる粒度に絞る（画面・APIの内訳は出さない）。"""
     with Diagram(
         "島しょ・へき地医療アクセス可視化マップ / 実行時構成",
         filename=os.path.join(OUT_DIR, "architecture"),
@@ -50,25 +50,15 @@ def runtime_architecture() -> None:
         visitor = Users("閲覧者")
 
         with Cluster("Cloudflare Workers", graph_attr={"fontname": FONT}):
-            app = NextJs("Next.js (App Router)\n@opennextjs/cloudflare")
-            with Cluster("画面", graph_attr={"fontname": FONT}):
-                workbench = React("/ ワークブック\n地図・人口対比・優先エリア")
-                island = React("/island/[slug]\n島別詳細")
-            with Cluster("API Route", graph_attr={"fontname": FONT}):
-                api_islands = Nodejs("/api/islands\narea_gap ビュー")
-                api_facilities = Nodejs("/api/facilities\nfacilities JOIN areas")
-            hyperdrive = Cloudflare("Hyperdrive\n(TCPプロキシ/プーリング)")
+            app = NextJs("Next.js (App Router)")
+            hyperdrive = Cloudflare("Hyperdrive")
 
-        neon = PostgreSQL("Neon PostgreSQL\nareas / facilities / area_gap")
-        tiles = Internet("国土地理院タイル\nglyphs.geolonia.com")
+        neon = PostgreSQL("Neon PostgreSQL")
+        tiles = Internet("国土地理院タイル")
 
         visitor >> Edge(label="HTTPS") >> app
-        app >> Edge(style="dashed") >> [workbench, island]
-        workbench >> api_islands
-        island >> api_facilities
-        [api_islands, api_facilities] >> Edge(label="pg (SQL)") >> hyperdrive
-        hyperdrive >> Edge(label="TLS / 直接接続") >> neon
-        workbench >> Edge(label="地図画像・島名グリフ", style="dotted", color="darkgreen") >> tiles
+        app >> Edge(label="pg (SQL)") >> hyperdrive >> Edge(label="TLS") >> neon
+        app >> Edge(label="地図画像", style="dotted", color="darkgreen") >> tiles
 
 
 def data_pipeline() -> None:
@@ -83,33 +73,29 @@ def data_pipeline() -> None:
         node_attr=NODE_ATTR,
         edge_attr=EDGE_ATTR,
     ):
-        with Cluster("東京都オープンデータAPI", graph_attr={"fontname": FONT}):
-            pop = Internet("人口（推計）")
-            emg = Internet("救急医療機関一覧")
-            clinic = Internet("診療・検査医療機関一覧")
+        tokyo = Internet("東京都オープンデータAPI")
         gsi = Internet("国土地理院\nジオコーディング")
 
-        with Cluster("ローカル（事前バッチ）", graph_attr={"fontname": FONT}):
-            ingest = Nodejs("npm run ingest\nscripts/ingest.mjs\n名寄せ・表記ゆれ吸収")
-            seed = PostgreSQL("db/init/02_seed.sql\n（生成物・コミット対象）")
-            local_db = Docker("Docker PostgreSQL\nlocalhost:5436")
+        with Cluster("事前バッチ（ローカル）", graph_attr={"fontname": FONT}):
+            ingest = Nodejs("npm run ingest")
+            seed = PostgreSQL("02_seed.sql")
+            local_db = Docker("Docker PostgreSQL")
 
         with Cluster("CI/CD", graph_attr={"fontname": FONT}):
-            repo = Github("GitHub\nmain ブランチ")
-            actions = GithubActions("Actions\nlint → tsc → deploy")
+            repo = Github("GitHub")
+            actions = GithubActions("GitHub Actions")
 
-        worker = Cloudflare("Cloudflare Workers\nritou-iryo-map")
+        worker = Cloudflare("Cloudflare Workers")
         neon = PostgreSQL("Neon PostgreSQL")
 
-        [pop, emg, clinic] >> Edge(label="offsetページング") >> ingest
-        ingest >> Edge(label="住所→緯度経度\n(.geocache.json)", style="dashed") >> gsi
+        tokyo >> ingest
+        gsi >> Edge(style="dashed") >> ingest
         ingest >> seed
-        seed >> Edge(label="docker compose up") >> local_db
-        seed >> Edge(label="SQL Editorで手動投入", style="dashed") >> neon
+        seed >> Edge(label="開発") >> local_db
+        seed >> Edge(label="本番へ投入", style="dashed") >> neon
 
-        repo >> Edge(label="push") >> actions
-        actions >> Edge(label="opennextjs-cloudflare deploy") >> worker
-        worker >> Edge(label="Hyperdrive経由") >> neon
+        repo >> Edge(label="push") >> actions >> Edge(label="deploy") >> worker
+        worker >> neon
 
 
 if __name__ == "__main__":
